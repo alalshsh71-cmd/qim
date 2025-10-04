@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8" />
+<title>نظام تقييم الطلاب ونتائج التوب 3 مع بحث وتقييم فوري</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+<script src="https://unpkg.com/xlsx@0.15.1/dist/xlsx.full.min.js"></script>
+<style>
+body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px;}
+.main-container { max-width: 1200px; margin: 0 auto;}
+.header-section, .top5-section, .search-section, .all-students-section, .download-section, .system-info { background: white; border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);}
+.leaderboard-item { display: flex; align-items: center; padding: 15px 20px; margin: 10px 0; border-radius: 15px; transition: all 0.3s ease;}
+.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: white; font-weight: bold;}
+.rank-2 { background: linear-gradient(135deg, #C0C0C0 0%, #A9A9A9 100%); color: white; font-weight: bold;}
+.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #B8860B 100%); color: white; font-weight: bold;}
+.rank-4, .rank-5 { background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);}
+.rank-badge { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin-left: 15px; background: rgba(255,255,255,0.3);}
+.student-info { flex: 1; text-align: right;}
+.student-name { font-size: 20px; font-weight: bold; margin-bottom: 5px;}
+.student-score { font-size: 28px; font-weight: bold; text-align: left; min-width: 120px;}
+/* البحث السريع */
+.search-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 25px; padding: 40px; margin-bottom: 30px; box-shadow: 0 15px 50px rgba(102, 126, 234, 0.4); position: relative; overflow: hidden;}
+.search-section h3 { color: white; text-align: center; margin-bottom: 30px; font-size: 28px; font-weight: bold; text-shadow: 0 2px 10px rgba(0,0,0,0.2);}
+.search-container { background: white; border-radius: 20px; padding: 30px; position: relative;}
+.search-form { display: flex; gap: 15px; align-items: stretch;}
+.search-input-wrapper { flex: 1; position: relative;}
+.search-input { width: 100%; padding: 18px 25px 18px 55px; border: 3px solid transparent; border-radius: 50px; font-size: 18px; outline: none; transition: all 0.3s ease; background: linear-gradient(white, white) padding-box, linear-gradient(135deg, #667eea, #764ba2) border-box; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);}
+.search-input:focus { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);}
+.search-icon { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #667eea;}
+.btn-search { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 18px 45px; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);}
+.btn-search:hover { transform: translateY(-3px);}
+.search-results { margin-top: 30px; display: none;}
+.results-header { color: #667eea; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #667eea; font-size: 20px;}
+.search-result-item { display: flex; align-items: center; justify-content: space-between; padding: 20px; margin: 15px 0; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);}
+.result-name { font-size: 20px; font-weight: bold; color: #2c3e50; flex: 1;}
+.result-points { font-size: 22px; font-weight: bold; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 25px;}
+.eval-controls { display: flex; align-items: center; gap: 10px;}
+.points-input { width: 110px; padding: 12px 15px; border: 2px solid #667eea; border-radius: 25px; font-size: 16px; text-align: center; outline: none;}
+.btn-add-points { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; font-size: 16px; cursor: pointer;}
+.btn-add-points:hover { transform: translateY(-2px);}
+.no-results { text-align: center; padding: 40px; color: #999; font-size: 20px; background: #f8f9fa; border-radius: 15px;}
+.no-results-icon { font-size: 48px; margin-bottom: 15px;}
+/* شاشة التوب 3 */
+#displayTop3 {
+    display:none; position:fixed; inset:0; z-index:9999; width:100vw; height:100vh;
+    background: none !important;
+}
+.bg-full {
+    position: absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; z-index:1; user-select: none;
+}
+.overlay-table {
+    position: absolute; left:45%; top:53.7%; transform:translate(-50%,-50%);
+    width: 80vw; max-width:1100px; background:none; z-index:2;
+}
+.t3table { width:100%; border-collapse:collapse; background:none;}
+.t3table th, .t3table td {
+    background:none !important; font-size:40px;
+    color: #fff; font-weight:bold; text-align:center; border:none; padding:38px 10px;
+    text-shadow: 0 2px 13px #000c;
+}
+.t3-medal { font-size:49px; }
+.close-btn { position:absolute; left:20px; top:20px; font-size:24px; background: #fff; border:none; border-radius:30px; padding:12px 32px; font-weight:bold; box-shadow:0 3px 10px #2224; cursor:pointer; z-index:99;}
+.close-btn:hover {background:rgba(255,255,255,0.85);}
+</style>
+</head>
+<body>
+<div class="main-container">
+    <div class="header-section text-center">
+        <h1>🏆  نظام تقييم طلاب اكاديمية قيم</h1>
+        <p class="text-muted">ارفع ملف Excel لعرض وتقييم الطلاب</p>
+        <input type="file" id="excel_file" class="form-control mt-3" accept=".xlsx, .xls" />
+    </div>
+    <div class="top5-section" id="top5_container" style="display:none;">
+        <h2 class="text-center mb-4">🌟 أفضل 5 طلاب</h2>
+        <div id="top5_list"></div>
+        <button onclick="showTop3()" class="btn-display">🖥️ عرض النتائج على الشاشة</button>
+    </div>
+    <div class="search-section" id="search_section" style="display:none;">
+        <h3>🔍 البحث السريع والتقييم</h3>
+        <div class="search-container">
+            <div class="search-box">
+                <div class="search-form">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon"></span>
+                        <input type="text" id="quick_search_input" class="search-input" placeholder="ابحث عن طالب بالاسم..." />
+                    </div>
+                    <button onclick="quickSearch()" class="btn-search">بحث</button>
+                </div>
+            </div>
+            <div id="search_results" class="search-results"></div>
+        </div>
+    </div>
+    <div class="all-students-section" id="all_students_section" style="display:none;">
+        <h3 class="mb-4">📋 جميع الطلاب</h3>
+        <div id="students_table"></div>
+    </div>
+    <div class="download-section" id="download_section" style="display:none;">
+        <h3 class="mb-4">📥 حفظ البيانات</h3>
+        <p class="text-muted mb-4">احفظ جميع التعديلات والتقييمات في ملف Excel محدث</p>
+        <button onclick="downloadExcel()" class="btn-download">📥 تحميل الملف المحدث</button>
+    </div>
+    <div class="system-info" id="system_info" style="display:none;">
+        <h3>ℹ️ نظام تقييم الطلاب</h3>
+        <p><strong>نظام تقييم شامل</strong><br> يمكنك رفع ملف Excel يحتوي على بيانات الطلاب، البحث السريع عن الطلاب وتقييمهم، عرض أفضل 5 طلاب وتحميل الملف المحدث، وعرض التوب 3 على الشاشة.</p>
+        <p style="margin-top: 15px; color: #999; font-size: 14px;">تم التطوير بواسطة نظام إدارة الأكاديمية 🎓</p>
+    </div>
+</div>
+<div id="displayTop3">
+    <img src="image.jpg" class="bg-full" draggable="false"/>
+    <button class="close-btn" onclick="closeTop3()">×</button>
+    <div class="overlay-table" id="top3table"></div>
+</div>
+<script>
+let studentsData = [];
+const excel_file = document.getElementById('excel_file');
+excel_file.addEventListener('change', (event) => {
+    if(!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(event.target.files[0].type)) {
+        alert('يرجى اختيار ملف Excel فقط (.xlsx أو .xls)');
+        excel_file.value = ''; return false;
+    }
+    var reader = new FileReader();
+    reader.readAsArrayBuffer(event.target.files[0]);
+    reader.onload = function(event) {
+        var data = new Uint8Array(reader.result);
+        var work_book = XLSX.read(data, {type:'array'});
+        var sheet_name = work_book.SheetNames;
+        var sheet_data = XLSX.utils.sheet_to_json(work_book.Sheets[sheet_name[0]], {header:1});
+        if(sheet_data.length > 1) processStudentData(sheet_data);
+    }
+});
+function processStudentData(data) {
+    studentsData = [];
+    for(let i = 1; i < data.length; i++) {
+        if(data[i][0] && data[i][1] !== undefined) {
+            studentsData.push({
+                name: data[i][0], points: parseFloat(data[i][1]) || 0, index: i - 1
+            });
+        }
+    }
+    displayTop5();
+    displayAllStudents();
+    document.getElementById('top5_container').style.display = 'block';
+    document.getElementById('search_section').style.display = 'block';
+    document.getElementById('all_students_section').style.display = 'block';
+    document.getElementById('download_section').style.display = 'block';
+    document.getElementById('system_info').style.display = 'block';
+}
+function displayTop5() {
+    let sortedStudents = [...studentsData].sort((a, b) => b.points - a.points);
+    let top5 = sortedStudents.slice(0, 5);
+    let html = '';
+    top5.forEach((student, index) => {
+        let rankClass = `rank-${index + 1}`;
+        let trophy = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐';
+        html += `<div class="leaderboard-item ${rankClass}"><div class="rank-badge">${trophy}</div><div class="student-info"><div class="student-name">${student.name}</div></div><div class="student-score">${student.points} نقطة</div></div>`;
+    });
+    document.getElementById('top5_list').innerHTML = html;
+}
+function displayAllStudents() {
+    let sortedStudents = [...studentsData].sort((a, b) => b.points - a.points);
+    let html = '<table class="table table-striped table-bordered" id="students_data_table">';
+    html += '<thead class="thead-dark"><tr><th>الترتيب</th><th>اسم الطالب</th><th>النقاط</th></tr></thead><tbody>';
+    sortedStudents.forEach((student, index) => {
+        html += `<tr><td><strong>${index + 1}</strong></td><td>${student.name}</td><td><strong>${student.points}</strong></td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('students_table').innerHTML = html;
+}
+function quickSearch() {
+    let searchText = document.getElementById('quick_search_input').value.trim().toUpperCase();
+    if(searchText === '') { alert('يرجى إدخال اسم الطالب للبحث'); return; }
+    let results = studentsData.filter(student => student.name.toUpperCase().includes(searchText));
+    let resultsDiv = document.getElementById('search_results');
+    if(results.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results"><div class="no-results-icon">🔍</div><div>لا توجد نتائج مطابقة للبحث</div></div>';
+        resultsDiv.style.display = 'block'; return;
+    }
+    let html = `<div class="results-header">✨ النتائج المطابقة (${results.length})</div>`;
+    results.forEach(student => {
+        html += `<div class="search-result-item"><div class="result-name">${student.name}</div><div class="result-points">${student.points} نقطة</div><div class="eval-controls"><input type="number" id="points_${student.index}" class="points-input" placeholder="النقاط"/><button onclick="addPointsToStudent(${student.index})" class="btn-add-points">➕ إضافة</button></div></div>`;
+    });
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+function addPointsToStudent(studentIndex) {
+    let pointsInput = document.getElementById(`points_${studentIndex}`);
+    let newPoints = parseFloat(pointsInput.value);
+    if(isNaN(newPoints) || newPoints === 0) { alert('يرجى إدخال نقاط صحيحة'); return; }
+    studentsData[studentIndex].points += newPoints;
+    displayTop5();
+    displayAllStudents();
+    quickSearch();
+    alert('تم إضافة النقاط بنجاح! ✅');
+}
+function downloadExcel() {
+    let wb = XLSX.utils.book_new();
+    let wsData = [['اسم الطالب', 'النقاط']];
+    let sortedStudents = [...studentsData].sort((a, b) => b.points - a.points);
+    sortedStudents.forEach(s => wsData.push([s.name, s.points]));
+    let ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "الطلاب");
+    let today = new Date();
+    let filename = `تقييم_الطلاب_${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    alert('تم تحميل الملف بنجاح! ✅');
+}
+function showTop3() {
+    let sorted = [...studentsData].sort((a,b) => b.points - a.points);
+    let top3 = sorted.slice(0,3);
+    let medals = ['<span class="t3-medal"></span>','<span class="t3-medal"></span>','<span class="t3-medal"></span>'];
+    let html = '<table class="t3table"><thead><tr><th style="width:20%;"></th><th style="width:40%;"></th><th style="width:40%;"></th></tr></thead>';
+    for(let i=0;i<3;i++) {
+        html += `<tr><td>${medals[i]}</td><td>${top3[i]?.name ?? ""}</td><td>${top3[i]?.points ?? ""}</td></tr>`;
+    }
+    html += '</table>';
+    document.getElementById('top3table').innerHTML = html;
+    document.getElementById('displayTop3').style.display = 'block';
+    if(document.getElementById('displayTop3').requestFullscreen) document.getElementById('displayTop3').requestFullscreen();
+}
+function closeTop3() {
+    document.getElementById('displayTop3').style.display = 'none';
+    if(document.exitFullscreen) document.exitFullscreen();
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('quick_search_input');
+    if(searchInput) searchInput.addEventListener('keypress', e => { if(e.key === 'Enter') quickSearch(); });
+});
+</script>
+</body>
+</html>
